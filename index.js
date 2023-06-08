@@ -161,6 +161,10 @@ async function run() {
       const result = await classesCollection.find(query).toArray();
       res.send(result)
     })
+    app.get("/classes", verifyJWT,verifyAdmin, async(req, res) => {
+      const result = await classesCollection.find({}).toArray();
+      res.send(result);
+    })
 
 
     // Send a ping to confirm a successful connection
