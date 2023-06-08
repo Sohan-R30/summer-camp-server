@@ -151,7 +151,14 @@ async function run() {
     // classes api
     app.post("/classes/add",verifyJWT,verifyInstructor, async(req, res) => {
       const classes = req.body;
-      const result = classesCollection.insertOne(classes);
+      const result = await classesCollection.insertOne(classes);
+      res.send(result)
+    })
+
+    app.get("/classes/:email",verifyJWT,verifyInstructor, async(req, res) => {
+      const email = req.params.email;
+      const query = {"storedClass.instructorEmail" : email}
+      const result = await classesCollection.find(query).toArray();
       res.send(result)
     })
 
