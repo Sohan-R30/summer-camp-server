@@ -44,6 +44,7 @@ async function run() {
     await client.connect();
 
     const usersCollection = client.db("summerCampDB").collection("users");
+    const classesCollection = client.db("summerCampDB").collection("classes");
 
 
     app.post('/jwt', (req, res) => {
@@ -72,75 +73,87 @@ async function run() {
       next();
     }
 
+   // Users api
 
+    app.get("/users/name/:email", async(req, res) => {
+      const email = req.params.email;
+      const query = {email : email}
+      const options = {
+        projection: { "storedUser.name": 1,},
+      };
+      const result = await usersCollection.findOne(query,options)
+      res.send(result)
+    })
+ 
+    app.put('/users/:email', async (req, res) => {
+      const email = req.params.email
+      const user = req.body
+      const query = { email: email }
+      const options = { upsert: true }
+      const updateDoc = {
+        $set: {...user},
+      }
+      const result = await usersCollection.updateOne(query, updateDoc, options)
+      res.send(result)
+    })
 
-    // Users api
-      app.put('/users/:email', async (req, res) => {
-        const email = req.params.email
-        const user = req.body
-        const query = { email: email }
-        const options = { upsert: true }
-        const updateDoc = {
-          $set: {...user},
-        }
-        const result = await usersCollection.updateOne(query, updateDoc, options)
-        res.send(result)
-      })
+    app.get('/users/admin/:email', verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({error:true, admin: false })
+      }
+      const query = { email: email }
+      const user = await usersCollection.findOne(query);
+      const result = { admin: user?.role === 'admin' }
+      res.send(result);
+    })
 
-      app.get('/users/admin/:email', verifyJWT, async (req, res) => {
-        const email = req.params.email;
-        if (req.decoded.email !== email) {
-          res.send({error:true, admin: false })
-        }
-        const query = { email: email }
-        const user = await usersCollection.findOne(query);
-        const result = { admin: user?.role === 'admin' }
-        res.send(result);
-      })
+    app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({error:true, instructor: false })
+      }
+      const query = { email: email }
+      const user = await usersCollection.findOne(query);
+      const result = { instructor: user?.role === 'instructor' }
+      res.send(result);
+    })
 
-      app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
-        const email = req.params.email;
-        if (req.decoded.email !== email) {
-          res.send({error:true, instructor: false })
-        }
-        const query = { email: email }
-        const user = await usersCollection.findOne(query);
-        const result = { instructor: user?.role === 'instructor' }
-        res.send(result);
-      })
+    app.get("/users", verifyJWT,verifyAdmin, async (req, res) => {
+      const result = await usersCollection.find({}).toArray();
+      res.send(result)
+    })
+    
+    app.patch("/users/admin/:id", verifyJWT, async(req, res) => {
+      const id = req.params.id;
+      const query = {_id : new ObjectId(id)};
+      const updateDoc = {
+        $set: {
+          role: 'admin'
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
 
+    app.patch("/users/instructor/:id", verifyJWT, async(req, res) => {
+      const id = req.params.id;
+      const query = {_id : new ObjectId(id)};
+      const updateDoc = {
+        $set: {
+          role: 'instructor'
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
 
-      
-      app.get("/users", verifyJWT,verifyAdmin, async (req, res) => {
-        const result = await usersCollection.find({}).toArray();
-        res.send(result)
-      })
-      
-      app.patch("/users/admin/:id", verifyJWT, async(req, res) => {
-        const id = req.params.id;
-        const query = {_id : new ObjectId(id)};
-        const updateDoc = {
-          $set: {
-            role: 'admin'
-          },
-        };
-        const result = await usersCollection.updateOne(query, updateDoc);
-        console.log(result)
-        res.send(result)
-      })
-
-      app.patch("/users/instructor/:id", verifyJWT, async(req, res) => {
-        const id = req.params.id;
-        const query = {_id : new ObjectId(id)};
-        const updateDoc = {
-          $set: {
-            role: 'instructor'
-          },
-        };
-        const result = await usersCollection.updateOne(query, updateDoc);
-        console.log(result)
-        res.send(result)
-      })
+    // classes api
+    app.post("/classes/add",verifyJWT,verifyInstructor, async(req, res) => {
+      const classes = req.body;
+      const result = classesCollection.insertOne(classes);
+      res.send(result)
+    })
 
 
     // Send a ping to confirm a successful connection
