@@ -70,7 +70,21 @@ async function run() {
         res.send(result)
       })
 
+      app.patch("/users/admin/:id", verifyJWT, async(req, res) => {
+        const id = req.params.id;
+        const query = {_id : new ObjectId(id)};
+        const updateDoc = {
+          $set: {
+            role: 'admin'
+          },
+        };
+        const result = await usersCollection.updateOne(query, updateDoc);
+        console.log(result)
+        res.send(result)
+      })
+
       
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
