@@ -161,11 +161,23 @@ async function run() {
       const result = await classesCollection.find(query).toArray();
       res.send(result)
     })
+
     app.get("/classes", verifyJWT,verifyAdmin, async(req, res) => {
       const result = await classesCollection.find({}).toArray();
       res.send(result);
     })
 
+    app.patch("/classes/admin/approved/:id", verifyJWT,verifyAdmin, async(req, res) => {
+      const id = req.params.id;
+      const query = {_id : new ObjectId(id)};
+      const updateDoc = {
+        $set: {
+          "storedClass.status": "approved",
+        },
+      };
+      const result = await classesCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
