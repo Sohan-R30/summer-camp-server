@@ -62,6 +62,17 @@ async function run() {
       next();
     }
 
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email }
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== 'instructor') {
+        return res.status(403).send({ error: true, message: 'forbidden Access' });
+      }
+      next();
+    }
+
+
 
     // Users api
       app.put('/users/:email', async (req, res) => {
@@ -75,12 +86,24 @@ async function run() {
         const result = await usersCollection.updateOne(query, updateDoc, options)
         res.send(result)
       })
+
+      app.get('/users/admin/:email', verifyJWT, async (req, res) => {
+        const email = req.params.email;
+        if (req.decoded.email !== email) {
+          res.send({error:true, admin: false })
+        }
+        const query = { email: email }
+        const user = await usersCollection.findOne(query);
+        const result = { admin: user?.role === 'admin' }
+        res.send(result);
+      })
+
       
-      app.get("/users", verifyJWT, async (req, res) => {
+      app.get("/users", verifyJWT,verifyAdmin, async (req, res) => {
         const result = await usersCollection.find({}).toArray();
         res.send(result)
       })
-
+      
       app.patch("/users/admin/:id", verifyJWT, async(req, res) => {
         const id = req.params.id;
         const query = {_id : new ObjectId(id)};
