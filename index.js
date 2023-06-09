@@ -212,16 +212,30 @@ async function run() {
       };
       const options = { upsert: true }
       const result = await classesCollection.updateOne(query, updateDoc, options);
-      console.log("🚀 ~ file: index.js:204 ~ app.patch ~ result:", result)
       res.send(result)
     })
 
     app.get("/allClasses", async(req, res) => {
       const query = {"storedClass.status": "approved"}
       const result = await classesCollection.find(query).toArray();
-      console.log("🚀 ~ file: index.js:221 ~ app.get ~ result:", result)
       res.send(result);
     })
+
+    app.patch("/classes/selectOrEnroll/:id",verifyJWT, async(req, res) => {
+      const id = req.params.id;
+      const classes = req.body.selectedClass
+      const query = {_id : new ObjectId(id)};
+      const updateDoc = {
+        $set: {...classes},
+      }
+      const options = { upsert: true }
+      const result = await classesCollection.updateOne(query, updateDoc, options);
+      res.send(result)
+    })
+
+
+
+   
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
