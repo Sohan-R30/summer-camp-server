@@ -4,6 +4,7 @@ const app = express()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 
 const port = process.env.PORT || 2007
 
@@ -233,9 +234,73 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/classes/selected/:email", verifyJWT, async(req, res) => {
+      const email = req.params.email;
+      const query = {selectedEmail: email, selected: true}
+      const result = await classesCollection.find(query).toArray();
+      res.send(result)
+    })
 
+    app.get("/classes/enrolled/:email", verifyJWT, async(req, res) => {
+      const email = req.params.email;
+      const query = {selectedEmail: email, enrolled: true}
+      const result = await classesCollection.find(query).toArray();
+      res.send(result)
+    })
 
-   
+    app.get("/classes/payment/:id", verifyJWT, async(req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await classesCollection.findOne(query);
+      res.send(result)
+    })
+    
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const { price } = req.body
+      const amount = parseFloat(price) * 100
+      if (!price) return
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card'],
+      })
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      })
+    })
+
+    app.patch("/classes/payments/:id",verifyJWT, async(req, res) => {
+      const id = req.params.id;
+      const body = req.body;
+      const query = {_id : new ObjectId(id)};
+      const updateDoc = {
+        $set: {...body, enrolled: true, selected:false},
+      }
+      console.log("🚀 ~ file: index.js:280 ~ app.patch ~ updateDoc:", updateDoc)
+      const options = { upsert: true }
+      const result = await classesCollection.updateOne(query, updateDoc, options);
+      res.send(result)
+    })
+
+    app.get("/classes/payments-history/:email", verifyJWT, async(req, res) => {
+      const selectedEmail = req.params.email;
+      const query = {selectedEmail: selectedEmail}
+      const options = {
+        projection: { 
+          storedClass: 1,
+          date: 1,
+          transactionId:1
+        },
+      };
+      const result = await classesCollection.find(query,options).sort({ date: -1 }).toArray();
+      res.send(result)
+    })
+
+    app.get("/users/allInstructor", async(req, res) => {
+      const query = {role: "instructor"}
+      const result = await usersCollection.find(query).toArray();
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
