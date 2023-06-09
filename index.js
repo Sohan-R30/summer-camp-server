@@ -167,6 +167,17 @@ async function run() {
       res.send(result);
     })
 
+    app.patch("/classes/update/:id", verifyJWT,verifyInstructor, async(req, res) => {
+      const id = req.params.id;
+      const classes = req.body;
+      const filter = {_id: new ObjectId(id)};
+      const updateDoc = {
+          $set : classes,
+      }
+      const result = await classesCollection.updateOne(filter,updateDoc);
+      res.send(result)
+  })
+
     app.patch("/classes/admin/approved/:id", verifyJWT,verifyAdmin, async(req, res) => {
       const id = req.params.id;
       const query = {_id : new ObjectId(id)};
@@ -205,6 +216,12 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/allClasses", async(req, res) => {
+      const query = {"storedClass.status": "approved"}
+      const result = await classesCollection.find(query).toArray();
+      console.log("🚀 ~ file: index.js:221 ~ app.get ~ result:", result)
+      res.send(result);
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
