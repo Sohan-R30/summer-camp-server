@@ -179,6 +179,33 @@ async function run() {
       res.send(result)
     })
 
+    app.patch("/classes/admin/deny/:id", verifyJWT,verifyAdmin, async(req, res) => {
+      const id = req.params.id;
+      const query = {_id : new ObjectId(id)};
+      const updateDoc = {
+        $set: {
+          "storedClass.status": "deny",
+        },
+      };
+      const result = await classesCollection.updateOne(query, updateDoc);
+      res.send(result)
+    })
+    app.patch("/classes/admin/feedback/:id", verifyJWT,verifyAdmin, async(req, res) => {
+      const id = req.params.id;
+      const feedback = req.body.giveFeedback
+      const query = {_id : new ObjectId(id)};
+      const updateDoc = {
+        $set: {
+          feedback: feedback,
+        },
+      };
+      const options = { upsert: true }
+      const result = await classesCollection.updateOne(query, updateDoc, options);
+      console.log("🚀 ~ file: index.js:204 ~ app.patch ~ result:", result)
+      res.send(result)
+    })
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
