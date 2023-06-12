@@ -201,7 +201,6 @@ async function run() {
       const result = await classesCollection.updateOne(query, updateDoc);
       res.send(result)
     })
-    
     app.patch("/classes/admin/feedback/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const feedback = req.body.giveFeedback
@@ -296,7 +295,6 @@ async function run() {
       const result = await classesCollection.updateOne(query, updateDoc, options);
       res.send(result)
     })
-
     app.patch("/enroll/payments", verifyJWT, async (req, res) => {
       const className = req.query.className;
       const body = req.body;
@@ -347,7 +345,6 @@ async function run() {
       const result = await usersCollection.find(query).toArray();
       res.send(result)
     })
-
     app.get("/users/classes/:email", async (req, res) => {
       const email = req.params.email;
       const query = { "storedClass.instructorEmail": email }
@@ -423,6 +420,44 @@ async function run() {
     })
 
 
+    app.get("/popularClasses", async (req, res) => {
+      const result = await classesCollection.find({}).sort({ "storedClass.totalEnrolledStudent": -1 }).limit(6).toArray();
+      res.send(result)
+    })
+
+
+    app.get("/popularInstructors", async (req, res) => {
+
+      const instructors = await usersCollection.find({ role: "instructor" }).toArray();
+      const topClasses = [];
+
+      for (const iterator of instructors) {
+
+        const instructorDetails = iterator.storedUser
+        const instructorEmail = iterator.storedUser.email;
+        const query = { "storedClass.instructorEmail": instructorEmail }
+
+        const findClasses = await classesCollection.find(query).toArray();
+
+        let perClassTotalStudent = 0;
+
+        for (const cllass of findClasses) {
+          perClassTotalStudent += cllass.storedClass.totalEnrolledStudent
+        }
+        topClasses.push({ perClassTotalStudent, instructorDetails })
+      }
+      topClasses.sort((a, b) => b.perClassTotalStudent - a.perClassTotalStudent);
+      res.send(topClasses.slice(0, 6))
+    })
+
+    app.get("/sliderDetails", async (req, res) => {
+      const query = { "storedClass.status": "approved" }
+      const options = {
+        projection: { "storedClass.className": 1, "storedClass.classPhoto": 1 },
+      };
+      const result = await classesCollection.find(query, options).sort({ "storedClass.totalEnrolledStudent": -1 }).limit(10).toArray();
+      res.send(result)
+    })
 
 
     // Send a ping to confirm a successful connection
